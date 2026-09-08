@@ -58,37 +58,30 @@ def nav_bar(selected_index: int) -> ft.NavigationBar:
     )
 
 
+def page_view(route: str, title: str, content: ft.Control) -> ft.View:
+    is_dark, toggle_theme = use_theme_toggle()
+    index = NAV_ROUTES.index(route)
+    return ft.View(
+        route=route,
+        appbar=app_bar(title, is_dark, toggle_theme),
+        navigation_bar=nav_bar(index),
+        controls=[content],
+    )
+
+
 @ft.component
 def Home():
-    is_dark, toggle_theme = use_theme_toggle()
-    return ft.View(
-        route="/",
-        appbar=app_bar("Home", is_dark, toggle_theme),
-        navigation_bar=nav_bar(0),
-        controls=[ft.Text("This is the Home page")],
-    )
+    return page_view("/", "Home", ft.Text("This is the Home page"))
 
 
 @ft.component
 def Archive():
-    is_dark, toggle_theme = use_theme_toggle()
-    return ft.View(
-        route="/archive",
-        appbar=app_bar("Archive", is_dark, toggle_theme),
-        navigation_bar=nav_bar(1),
-        controls=[ft.Text("This is the Archive page")],
-    )
+    return page_view("/archive", "Archive", ft.Text("This is the Archive page"))
 
 
 @ft.component
 def Trash():
-    is_dark, toggle_theme = use_theme_toggle()
-    return ft.View(
-        route="/trash",
-        appbar=app_bar("Trash", is_dark, toggle_theme),
-        navigation_bar=nav_bar(2),
-        controls=[ft.Text("This is the Trash page")],
-    )
+    return page_view("/trash", "Trash", ft.Text("This is the Trash page"))
 
 
 @ft.component
