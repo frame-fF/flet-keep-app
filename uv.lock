@@ -386,6 +386,7 @@ version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
     { name = "flet" },
+    { name = "httpx" },
 ]
 
 [package.dev-dependencies]
@@ -397,7 +398,10 @@ dev = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "flet", specifier = ">=0.86.5" }]
+requires-dist = [
+    { name = "flet", specifier = ">=0.86.5" },
+    { name = "httpx", specifier = ">=0.28.1" },
+]
 
 [package.metadata.requires-dev]
 dev = [
