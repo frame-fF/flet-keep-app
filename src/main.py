@@ -1,12 +1,14 @@
 import flet as ft
 
 NAV_ROUTES = ["/", "/archive", "/trash"]
+BAR_COLOR = ft.Colors.SURFACE_CONTAINER
 
 
 def app_bar(title: str, is_dark: bool, toggle_theme) -> ft.AppBar:
     page = ft.context.page
     return ft.AppBar(
         title=ft.Text(title),
+        bgcolor=BAR_COLOR,
         actions=[
             ft.IconButton(
                 icon=ft.Icons.DARK_MODE if is_dark else ft.Icons.LIGHT_MODE,
@@ -46,6 +48,7 @@ def nav_bar(selected_index: int) -> ft.NavigationBar:
     page = ft.context.page
     return ft.NavigationBar(
         selected_index=selected_index,
+        bgcolor=BAR_COLOR,
         destinations=[
             ft.NavigationBarDestination(icon=ft.Icons.HOME_OUTLINED, label="Home"),
             ft.NavigationBarDestination(icon=ft.Icons.ARCHIVE_OUTLINED, label="Archive"),
