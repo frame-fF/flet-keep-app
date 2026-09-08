@@ -3,17 +3,43 @@ import flet as ft
 NAV_ROUTES = ["/", "/archive", "/trash"]
 
 
-def app_bar(title: str) -> ft.AppBar:
+def app_bar(title: str, is_dark: bool, toggle_theme) -> ft.AppBar:
     page = ft.context.page
     return ft.AppBar(
         title=ft.Text(title),
         actions=[
+            ft.IconButton(
+                icon=ft.Icons.DARK_MODE if is_dark else ft.Icons.LIGHT_MODE,
+                on_click=lambda e: toggle_theme(),
+            ),
             ft.IconButton(
                 icon=ft.Icons.ACCOUNT_CIRCLE,
                 on_click=lambda e: page.navigate("/profile"),
             ),
         ],
     )
+
+
+def _is_currently_dark(page: ft.Page) -> bool:
+    if page.theme_mode == ft.ThemeMode.DARK:
+        return True
+    if page.theme_mode == ft.ThemeMode.LIGHT:
+        return False
+    return page.platform_brightness == ft.Brightness.DARK
+
+
+def use_theme_toggle():
+    """Local dark-mode state, seeded from what's actually on screen right now."""
+    page = ft.context.page
+    is_dark, set_is_dark = ft.use_state(lambda: _is_currently_dark(page))
+
+    def toggle_theme():
+        new_value = not is_dark
+        set_is_dark(new_value)
+        page.theme_mode = ft.ThemeMode.DARK if new_value else ft.ThemeMode.LIGHT
+        page.update()
+
+    return is_dark, toggle_theme
 
 
 def nav_bar(selected_index: int) -> ft.NavigationBar:
@@ -31,9 +57,10 @@ def nav_bar(selected_index: int) -> ft.NavigationBar:
 
 @ft.component
 def Home():
+    is_dark, toggle_theme = use_theme_toggle()
     return ft.View(
         route="/",
-        appbar=app_bar("Home"),
+        appbar=app_bar("Home", is_dark, toggle_theme),
         navigation_bar=nav_bar(0),
         controls=[ft.Text("This is the Home page")],
     )
@@ -41,9 +68,10 @@ def Home():
 
 @ft.component
 def Archive():
+    is_dark, toggle_theme = use_theme_toggle()
     return ft.View(
         route="/archive",
-        appbar=app_bar("Archive"),
+        appbar=app_bar("Archive", is_dark, toggle_theme),
         navigation_bar=nav_bar(1),
         controls=[ft.Text("This is the Archive page")],
     )
@@ -51,9 +79,10 @@ def Archive():
 
 @ft.component
 def Trash():
+    is_dark, toggle_theme = use_theme_toggle()
     return ft.View(
         route="/trash",
-        appbar=app_bar("Trash"),
+        appbar=app_bar("Trash", is_dark, toggle_theme),
         navigation_bar=nav_bar(2),
         controls=[ft.Text("This is the Trash page")],
     )
