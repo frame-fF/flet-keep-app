@@ -58,7 +58,8 @@ def nav_bar(selected_index: int) -> ft.NavigationBar:
     )
 
 
-def page_view(route: str, title: str, content: ft.Control) -> ft.View:
+def page_view(title: str, content: ft.Control) -> ft.View:
+    route = ft.use_route_location()
     is_dark, toggle_theme = use_theme_toggle()
     index = NAV_ROUTES.index(route)
     return ft.View(
@@ -71,17 +72,17 @@ def page_view(route: str, title: str, content: ft.Control) -> ft.View:
 
 @ft.component
 def Home():
-    return page_view("/", "Home", ft.Text("This is the Home page"))
+    return page_view("Home", ft.Text("This is the Home page"))
 
 
 @ft.component
 def Archive():
-    return page_view("/archive", "Archive", ft.Text("This is the Archive page"))
+    return page_view("Archive", ft.Text("This is the Archive page"))
 
 
 @ft.component
 def Trash():
-    return page_view("/trash", "Trash", ft.Text("This is the Trash page"))
+    return page_view("Trash", ft.Text("This is the Trash page"))
 
 
 @ft.component
