@@ -1,0 +1,21 @@
+{
+  "mcpServers": {
+    "flet": {
+      "command": "uv",
+      "args": [
+        "run",
+        "--directory",
+        "D:\\Developer\\flet-mcp-server",
+        "python",
+        "server.py"
+      ],
+      "env": {
+        "FLET_MCP_ENABLE_API": "true",
+        "FLET_MCP_ENABLE_ICONS": "true",
+        "FLET_MCP_ENABLE_EXAMPLES": "true",
+        "FLET_MCP_ENABLE_DOCS": "true",
+        "FLET_MCP_ENABLE_CLI": "true"
+      }
+    }
+  }
+}
