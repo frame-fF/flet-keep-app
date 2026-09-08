@@ -2,23 +2,18 @@ import flet as ft
 
 
 def main(page: ft.Page):
-    counter = ft.Text("0", size=50, data=0)
-
-    def increment_click(e: ft.Event[ft.FloatingActionButton]):
-        counter.data += 1
-        counter.value = str(counter.data)
-
-    page.floating_action_button = ft.FloatingActionButton(
-        icon=ft.Icons.ADD, key="increment", on_click=increment_click
+    page.appbar = ft.AppBar(
+        title=ft.Text("Keep"),
+        actions=[ft.IconButton(icon=ft.Icons.SEARCH)],
     )
-    page.add(
-        ft.SafeArea(
-            expand=True,
-            content=ft.Container(
-                content=counter,
-                alignment=ft.Alignment.CENTER,
-            ),
-        )
+
+    page.navigation_bar = ft.NavigationBar(
+        selected_index=0,
+        destinations=[
+            ft.NavigationBarDestination(icon=ft.Icons.LIGHTBULB_OUTLINE, label="Notes"),
+            ft.NavigationBarDestination(icon=ft.Icons.ARCHIVE_OUTLINED, label="Archive"),
+        ],
+        on_change=lambda e: print("selected tab:", e.control.selected_index),
     )
 
 
