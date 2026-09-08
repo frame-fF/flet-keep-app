@@ -3,6 +3,19 @@ import flet as ft
 NAV_ROUTES = ["/", "/archive", "/trash"]
 
 
+def app_bar(title: str) -> ft.AppBar:
+    page = ft.context.page
+    return ft.AppBar(
+        title=ft.Text(title),
+        actions=[
+            ft.IconButton(
+                icon=ft.Icons.ACCOUNT_CIRCLE,
+                on_click=lambda e: page.navigate("/profile"),
+            ),
+        ],
+    )
+
+
 def nav_bar(selected_index: int) -> ft.NavigationBar:
     page = ft.context.page
     return ft.NavigationBar(
@@ -20,7 +33,7 @@ def nav_bar(selected_index: int) -> ft.NavigationBar:
 def Home():
     return ft.View(
         route="/",
-        appbar=ft.AppBar(title=ft.Text("Home")),
+        appbar=app_bar("Home"),
         navigation_bar=nav_bar(0),
         controls=[ft.Text("This is the Home page")],
     )
@@ -30,7 +43,7 @@ def Home():
 def Archive():
     return ft.View(
         route="/archive",
-        appbar=ft.AppBar(title=ft.Text("Archive")),
+        appbar=app_bar("Archive"),
         navigation_bar=nav_bar(1),
         controls=[ft.Text("This is the Archive page")],
     )
@@ -40,7 +53,7 @@ def Archive():
 def Trash():
     return ft.View(
         route="/trash",
-        appbar=ft.AppBar(title=ft.Text("Trash")),
+        appbar=app_bar("Trash"),
         navigation_bar=nav_bar(2),
         controls=[ft.Text("This is the Trash page")],
     )
@@ -59,6 +72,9 @@ def App():
 
 
 def main(page: ft.Page):
+    page.window.width = 440
+    page.window.height = 800
+
     page.theme = ft.Theme(
         page_transitions=ft.PageTransitionsTheme(
             android=ft.PageTransitionTheme.NONE,
