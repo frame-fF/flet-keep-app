@@ -1,21 +1,62 @@
 import flet as ft
 
+NAV_ROUTES = ["/", "/archive", "/trash"]
 
-def main(page: ft.Page):
-    page.appbar = ft.AppBar(
-        title=ft.Text("Keep"),
-        actions=[ft.IconButton(icon=ft.Icons.SEARCH)],
+
+def nav_bar(selected_index: int) -> ft.NavigationBar:
+    page = ft.context.page
+    return ft.NavigationBar(
+        selected_index=selected_index,
+        destinations=[
+            ft.NavigationBarDestination(icon=ft.Icons.HOME_OUTLINED, label="Home"),
+            ft.NavigationBarDestination(icon=ft.Icons.ARCHIVE_OUTLINED, label="Archive"),
+            ft.NavigationBarDestination(icon=ft.Icons.DELETE_OUTLINE, label="Trash"),
+        ],
+        on_change=lambda e: page.navigate(NAV_ROUTES[e.control.selected_index]),
     )
 
-    page.navigation_bar = ft.NavigationBar(
-        selected_index=0,
-        destinations=[
-            ft.NavigationBarDestination(icon=ft.Icons.LIGHTBULB_OUTLINE, label="Notes"),
-            ft.NavigationBarDestination(icon=ft.Icons.ARCHIVE_OUTLINED, label="Archive"),
+
+@ft.component
+def Home():
+    return ft.View(
+        route="/",
+        appbar=ft.AppBar(title=ft.Text("Home")),
+        navigation_bar=nav_bar(0),
+        controls=[ft.Text("This is the Home page")],
+    )
+
+
+@ft.component
+def Archive():
+    return ft.View(
+        route="/archive",
+        appbar=ft.AppBar(title=ft.Text("Archive")),
+        navigation_bar=nav_bar(1),
+        controls=[ft.Text("This is the Archive page")],
+    )
+
+
+@ft.component
+def Trash():
+    return ft.View(
+        route="/trash",
+        appbar=ft.AppBar(title=ft.Text("Trash")),
+        navigation_bar=nav_bar(2),
+        controls=[ft.Text("This is the Trash page")],
+    )
+
+
+@ft.component
+def App():
+    return ft.Router(
+        [
+            ft.Route(path="/", component=Home),
+            ft.Route(path="/archive", component=Archive),
+            ft.Route(path="/trash", component=Trash),
         ],
-        on_change=lambda e: print("selected tab:", e.control.selected_index),
+        manage_views=True,
     )
 
 
 if __name__ == "__main__":
-    ft.run(main)
+    ft.run(lambda page: page.render_views(App))
