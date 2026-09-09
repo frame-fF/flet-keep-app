@@ -35,10 +35,10 @@ def split_errors(errors: dict) -> tuple[str, dict[str, str]]:
     return (str(general) if general else "", fields)
 
 
-async def register(username: str, email: str, password: str) -> dict:
+async def register(username: str, email: str, password: str, password2: str) -> dict:
     return await _post(
         "/api/user/register/",
-        {"username": username, "email": email, "password": password},
+        {"username": username, "email": email, "password": password, "password2": password2},
     )
 
 
@@ -47,3 +47,17 @@ async def login(username_or_email: str, password: str) -> dict:
         "/api/user/login/",
         {"username": username_or_email, "password": password},
     )
+
+
+async def logout(token: str) -> None:
+    async with httpx.AsyncClient(base_url=BASE_URL, timeout=10) as client:
+        r = await client.post(
+            "/api/user/logout/",
+            headers={"Authorization": f"Token {token}"},
+        )
+    if r.status_code >= 400:
+        try:
+            errors = r.json()
+        except ValueError:
+            errors = {}
+        raise ApiError(r.text, errors=errors if isinstance(errors, dict) else {})

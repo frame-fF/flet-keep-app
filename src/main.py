@@ -1,7 +1,7 @@
 import flet as ft
 
-from api import ApiError, login as api_login, register as api_register, split_errors
-from auth_state import is_logged_in, set_session
+from api import ApiError, login as api_login, logout as api_logout, register as api_register, split_errors
+from auth_state import clear_session, get_token, is_logged_in, set_session
 
 NAV_ROUTES = ["/", "/archive", "/trash"]
 BAR_COLOR = ft.Colors.SURFACE_CONTAINER
@@ -24,13 +24,13 @@ def app_bar(title: str, is_dark: bool, toggle_theme, on_profile_click) -> ft.App
     )
 
 
-def profile_drawer() -> ft.NavigationDrawer:
+def profile_drawer(on_logout) -> ft.NavigationDrawer:
     return ft.NavigationDrawer(
         controls=[
             ft.Container(height=12),
             ft.ListTile(leading=ft.Icon(ft.Icons.ACCOUNT_CIRCLE), title=ft.Text("Profile")),
             ft.ListTile(leading=ft.Icon(ft.Icons.SETTINGS_OUTLINED), title=ft.Text("Settings")),
-            ft.ListTile(leading=ft.Icon(ft.Icons.LOGOUT), title=ft.Text("Logout")),
+            ft.ListTile(leading=ft.Icon(ft.Icons.LOGOUT), title=ft.Text("Logout"), on_click=on_logout),
         ]
     )
 
@@ -85,11 +85,20 @@ def page_view(title: str, content: ft.Control, **view_kwargs) -> ft.View:
     async def open_profile_menu(e):
         await view.show_end_drawer()
 
+    async def handle_logout(e):
+        token = get_token()
+        try:
+            await api_logout(token)
+        except ApiError:
+            pass
+        clear_session()
+        page.navigate("/login")
+
     view = ft.View(
         route=route,
         appbar=app_bar(title, is_dark, toggle_theme, open_profile_menu),
         navigation_bar=nav_bar(index),
-        end_drawer=profile_drawer(),
+        end_drawer=profile_drawer(handle_logout),
         controls=[content],
         **view_kwargs,
     )
@@ -200,13 +209,14 @@ def RegisterForm():
     username, set_username = ft.use_state("")
     email, set_email = ft.use_state("")
     password, set_password = ft.use_state("")
+    password2, set_password2 = ft.use_state("")
 
     async def handle_register(e):
         set_loading(True)
         set_error_text("")
         set_field_errors({})
         try:
-            await api_register(username, email, password)
+            await api_register(username, email, password, password2)
             page.navigate("/login")
         except ApiError as ex:
             general, fields = split_errors(ex.errors) if ex.errors else (str(ex), {})
@@ -236,6 +246,14 @@ def RegisterForm():
                 value=password,
                 on_change=lambda e: set_password(e.control.value),
                 error=field_errors.get("password"),
+            ),
+            ft.TextField(
+                label="Confirm Password",
+                password=True,
+                can_reveal_password=True,
+                value=password2,
+                on_change=lambda e: set_password2(e.control.value),
+                error=field_errors.get("password2"),
             ),
             ft.Container(height=24 if error_text else 0, content=ft.Text(error_text, color=ft.Colors.ERROR)),
             ft.FilledButton(

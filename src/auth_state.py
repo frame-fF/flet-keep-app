@@ -5,6 +5,10 @@ def is_logged_in() -> bool:
     return SESSION["token"] is not None
 
 
+def get_token() -> str | None:
+    return SESSION["token"]
+
+
 def set_session(token: str, user: dict) -> None:
     SESSION["token"] = token
     SESSION["user"] = user
