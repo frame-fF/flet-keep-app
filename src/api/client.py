@@ -4,15 +4,35 @@ BASE_URL = "http://127.0.0.1:8000"
 
 
 class ApiError(Exception):
-    pass
+    def __init__(self, message: str, errors: dict | None = None):
+        super().__init__(message)
+        self.errors = errors or {}
 
 
 async def _post(path: str, json: dict) -> dict:
     async with httpx.AsyncClient(base_url=BASE_URL, timeout=10) as client:
         r = await client.post(path, json=json)
     if r.status_code >= 400:
-        raise ApiError(r.text)
+        try:
+            errors = r.json()
+        except ValueError:
+            errors = {}
+        raise ApiError(r.text, errors=errors if isinstance(errors, dict) else {})
     return r.json()
+
+
+def split_errors(errors: dict) -> tuple[str, dict[str, str]]:
+    """Split a DRF-style error dict into a general message and per-field messages."""
+    general = errors.get("detail") or errors.get("non_field_errors")
+    if isinstance(general, list):
+        general = general[0] if general else None
+
+    fields = {
+        key: (value[0] if isinstance(value, list) else str(value))
+        for key, value in errors.items()
+        if key not in ("detail", "non_field_errors")
+    }
+    return (str(general) if general else "", fields)
 
 
 async def register(username: str, email: str, password: str) -> dict:

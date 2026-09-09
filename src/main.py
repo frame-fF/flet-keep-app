@@ -1,6 +1,6 @@
 import flet as ft
 
-from api import ApiError, login as api_login, register as api_register
+from api import ApiError, login as api_login, register as api_register, split_errors
 from auth_state import is_logged_in, set_session
 
 NAV_ROUTES = ["/", "/archive", "/trash"]
@@ -125,6 +125,7 @@ def Trash():
 def LoginForm():
     page = ft.context.page
     error_text, set_error_text = ft.use_state("")
+    field_errors, set_field_errors = ft.use_state({})
     loading, set_loading = ft.use_state(False)
 
     username, set_username = ft.use_state("")
@@ -133,12 +134,15 @@ def LoginForm():
     async def handle_login(e):
         set_loading(True)
         set_error_text("")
+        set_field_errors({})
         try:
             data = await api_login(username, password)
             set_session(data["token"], data["user"])
             page.navigate("/")
         except ApiError as ex:
-            set_error_text(str(ex))
+            general, fields = split_errors(ex.errors) if ex.errors else (str(ex), {})
+            set_error_text(general)
+            set_field_errors(fields)
             set_loading(False)
 
     return ft.Column(
@@ -148,6 +152,7 @@ def LoginForm():
                 label="Username or Email",
                 value=username,
                 on_change=lambda e: set_username(e.control.value),
+                error=field_errors.get("username"),
             ),
             ft.TextField(
                 label="Password",
@@ -155,8 +160,9 @@ def LoginForm():
                 can_reveal_password=True,
                 value=password,
                 on_change=lambda e: set_password(e.control.value),
+                error=field_errors.get("password"),
             ),
-            ft.Container(height=40, content=ft.Text(error_text, color=ft.Colors.ERROR)),
+            ft.Container(height=24 if error_text else 0, content=ft.Text(error_text, color=ft.Colors.ERROR)),
             ft.FilledButton(
                 content=ft.ProgressRing(width=16, height=16, stroke_width=2, color=ft.Colors.ON_PRIMARY)
                 if loading
@@ -188,6 +194,7 @@ def Login():
 def RegisterForm():
     page = ft.context.page
     error_text, set_error_text = ft.use_state("")
+    field_errors, set_field_errors = ft.use_state({})
     loading, set_loading = ft.use_state(False)
 
     username, set_username = ft.use_state("")
@@ -197,26 +204,40 @@ def RegisterForm():
     async def handle_register(e):
         set_loading(True)
         set_error_text("")
+        set_field_errors({})
         try:
             await api_register(username, email, password)
             page.navigate("/login")
         except ApiError as ex:
-            set_error_text(str(ex))
+            general, fields = split_errors(ex.errors) if ex.errors else (str(ex), {})
+            set_error_text(general)
+            set_field_errors(fields)
             set_loading(False)
 
     return ft.Column(
         [
             ft.Text("Register", size=28, weight=ft.FontWeight.BOLD),
-            ft.TextField(label="Username", value=username, on_change=lambda e: set_username(e.control.value)),
-            ft.TextField(label="Email", value=email, on_change=lambda e: set_email(e.control.value)),
+            ft.TextField(
+                label="Username",
+                value=username,
+                on_change=lambda e: set_username(e.control.value),
+                error=field_errors.get("username"),
+            ),
+            ft.TextField(
+                label="Email",
+                value=email,
+                on_change=lambda e: set_email(e.control.value),
+                error=field_errors.get("email"),
+            ),
             ft.TextField(
                 label="Password",
                 password=True,
                 can_reveal_password=True,
                 value=password,
                 on_change=lambda e: set_password(e.control.value),
+                error=field_errors.get("password"),
             ),
-            ft.Container(height=40, content=ft.Text(error_text, color=ft.Colors.ERROR)),
+            ft.Container(height=24 if error_text else 0, content=ft.Text(error_text, color=ft.Colors.ERROR)),
             ft.FilledButton(
                 content=ft.ProgressRing(width=16, height=16, stroke_width=2, color=ft.Colors.ON_PRIMARY)
                 if loading
