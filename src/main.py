@@ -58,7 +58,7 @@ def nav_bar(selected_index: int) -> ft.NavigationBar:
     )
 
 
-def page_view(title: str, content: ft.Control) -> ft.View:
+def page_view(title: str, content: ft.Control, **view_kwargs) -> ft.View:
     route = ft.use_route_location()
     is_dark, toggle_theme = use_theme_toggle()
     index = NAV_ROUTES.index(route)
@@ -67,12 +67,17 @@ def page_view(title: str, content: ft.Control) -> ft.View:
         appbar=app_bar(title, is_dark, toggle_theme),
         navigation_bar=nav_bar(index),
         controls=[content],
+        **view_kwargs,
     )
 
 
 @ft.component
 def Home():
-    return page_view("Home", ft.Text("This is the Home page"))
+    return page_view(
+        "Home",
+        ft.Text("This is the Home page"),
+        floating_action_button=ft.FloatingActionButton(icon=ft.Icons.ADD, on_click=lambda e: None),
+    )
 
 
 @ft.component
