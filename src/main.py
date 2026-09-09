@@ -150,7 +150,7 @@ def page_view(title: str, content: ft.Control, **view_kwargs) -> ft.View:
 
 
 @ft.component
-def AddNoteFab():
+def AddNoteFab(on_saved=None):
     """FAB that opens a Keep-style note editor dialog and posts the note to the API."""
     show, set_show = ft.use_state(False)
     title, set_title = ft.use_state("")
@@ -208,6 +208,8 @@ def AddNoteFab():
                 checklist_items=checklist_items,
             )
             reset_and_close()
+            if on_saved:
+                on_saved()
         except ApiError as ex:
             set_error_text(str(ex))
             set_saving(False)
@@ -344,7 +346,7 @@ def note_card(note: dict) -> ft.Control:
 
 
 @ft.component
-def NotesList():
+def NotesList(reload_ref=None):
     page = ft.context.page
     notes, set_notes = ft.use_state([])
     loading, set_loading = ft.use_state(True)
@@ -360,6 +362,9 @@ def NotesList():
             set_error_text(str(ex))
         finally:
             set_loading(False)
+
+    if reload_ref is not None:
+        reload_ref.current = lambda: page.run_task(load_notes)
 
     ft.use_effect(lambda: page.run_task(load_notes), [])
 
@@ -382,9 +387,11 @@ def NotesList():
 @ft.component
 def Home():
     appbar_title = "Home"
-    content = NotesList()
+    reload_notes_ref = ft.use_ref(None)
+    content = NotesList(reload_ref=reload_notes_ref)
+    fab = AddNoteFab(on_saved=lambda: reload_notes_ref.current and reload_notes_ref.current())
 
-    return page_view(appbar_title, content, floating_action_button=AddNoteFab())
+    return page_view(appbar_title, content, floating_action_button=fab)
 
 
 @ft.component
