@@ -4,6 +4,7 @@ from flet_color_pickers import BlockPicker
 from api import (
     ApiError,
     create_note as api_create_note,
+    list_notes as api_list_notes,
     login as api_login,
     logout as api_logout,
     register as api_register,
@@ -309,10 +310,79 @@ def AddNoteFab():
     return ft.FloatingActionButton(icon=ft.Icons.ADD, on_click=lambda e: set_show(True))
 
 
+def note_card(note: dict) -> ft.Control:
+    bgcolor = dialog_bgcolor_for(note["color"])
+
+    body: list[ft.Control] = [
+        ft.Row(
+            [
+                ft.Text(note["title"] or "Untitled", weight=ft.FontWeight.BOLD, expand=True),
+                ft.Icon(ft.Icons.PUSH_PIN, size=16) if note["is_pinned"] else ft.Container(),
+            ]
+        ),
+    ]
+    if note["content"]:
+        body.append(ft.Text(note["content"]))
+
+    for item in sorted(note["checklist_items"], key=lambda i: i["order"]):
+        body.append(
+            ft.Row(
+                [
+                    ft.Checkbox(value=item["is_checked"], disabled=True),
+                    ft.Text(
+                        item["text"],
+                        color=ft.Colors.ON_SURFACE_VARIANT if item["is_checked"] else None,
+                    ),
+                ]
+            )
+        )
+
+    return ft.Card(
+        bgcolor=bgcolor,
+        content=ft.Container(padding=12, content=ft.Column(body, tight=True)),
+    )
+
+
+@ft.component
+def NotesList():
+    page = ft.context.page
+    notes, set_notes = ft.use_state([])
+    loading, set_loading = ft.use_state(True)
+    error_text, set_error_text = ft.use_state("")
+
+    async def load_notes():
+        set_loading(True)
+        set_error_text("")
+        try:
+            data = await api_list_notes(get_token())
+            set_notes(data)
+        except ApiError as ex:
+            set_error_text(str(ex))
+        finally:
+            set_loading(False)
+
+    ft.use_effect(lambda: page.run_task(load_notes), [])
+
+    if loading:
+        return ft.Row([ft.ProgressRing()], alignment=ft.MainAxisAlignment.CENTER)
+
+    if error_text:
+        return ft.Text(error_text, color=ft.Colors.ERROR)
+
+    if not notes:
+        return ft.Text("ยังไม่มีโน้ต", color=ft.Colors.ON_SURFACE_VARIANT)
+
+    return ft.Column(
+        [note_card(note) for note in notes],
+        scroll=ft.ScrollMode.AUTO,
+        expand=True,
+    )
+
+
 @ft.component
 def Home():
     appbar_title = "Home"
-    content = ft.Text("This is the Home page")
+    content = NotesList()
 
     return page_view(appbar_title, content, floating_action_button=AddNoteFab())
 

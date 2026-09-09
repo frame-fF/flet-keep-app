@@ -9,16 +9,29 @@ class ApiError(Exception):
         self.errors = errors or {}
 
 
+def _raise_for_error(r: httpx.Response) -> None:
+    try:
+        errors = r.json()
+    except ValueError:
+        errors = {}
+    raise ApiError(r.text, errors=errors if isinstance(errors, dict) else {})
+
+
 async def _post(path: str, json: dict, token: str | None = None) -> dict:
     headers = {"Authorization": f"Bearer {token}"} if token else {}
     async with httpx.AsyncClient(base_url=BASE_URL, timeout=10) as client:
         r = await client.post(path, json=json, headers=headers)
     if r.status_code >= 400:
-        try:
-            errors = r.json()
-        except ValueError:
-            errors = {}
-        raise ApiError(r.text, errors=errors if isinstance(errors, dict) else {})
+        _raise_for_error(r)
+    return r.json()
+
+
+async def _get(path: str, token: str | None = None):
+    headers = {"Authorization": f"Bearer {token}"} if token else {}
+    async with httpx.AsyncClient(base_url=BASE_URL, timeout=10) as client:
+        r = await client.get(path, headers=headers)
+    if r.status_code >= 400:
+        _raise_for_error(r)
     return r.json()
 
 
@@ -77,6 +90,10 @@ async def create_note(
     )
 
 
+async def list_notes(token: str) -> list[dict]:
+    return await _get("/api/keep/notes/", token=token)
+
+
 async def logout(token: str, refresh: str) -> None:
     async with httpx.AsyncClient(base_url=BASE_URL, timeout=10) as client:
         r = await client.post(
@@ -85,8 +102,4 @@ async def logout(token: str, refresh: str) -> None:
             json={"refresh": refresh},
         )
     if r.status_code >= 400:
-        try:
-            errors = r.json()
-        except ValueError:
-            errors = {}
-        raise ApiError(r.text, errors=errors if isinstance(errors, dict) else {})
+        _raise_for_error(r)
