@@ -49,11 +49,12 @@ async def login(username_or_email: str, password: str) -> dict:
     )
 
 
-async def logout(token: str) -> None:
+async def logout(token: str, refresh: str) -> None:
     async with httpx.AsyncClient(base_url=BASE_URL, timeout=10) as client:
         r = await client.post(
             "/api/user/logout/",
-            headers={"Authorization": f"Token {token}"},
+            headers={"Authorization": f"Bearer {token}"},
+            json={"refresh": refresh},
         )
     if r.status_code >= 400:
         try:

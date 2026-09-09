@@ -1,7 +1,7 @@
 import flet as ft
 
 from api import ApiError, login as api_login, logout as api_logout, register as api_register, split_errors
-from auth_state import clear_session, get_token, is_logged_in, set_session
+from auth_state import clear_session, get_refresh_token, get_token, is_logged_in, set_session
 
 NAV_ROUTES = ["/", "/archive", "/trash"]
 BAR_COLOR = ft.Colors.SURFACE_CONTAINER
@@ -87,8 +87,9 @@ def page_view(title: str, content: ft.Control, **view_kwargs) -> ft.View:
 
     async def handle_logout(e):
         token = get_token()
+        refresh = get_refresh_token()
         try:
-            await api_logout(token)
+            await api_logout(token, refresh)
         except ApiError:
             pass
         clear_session()
@@ -146,7 +147,7 @@ def LoginForm():
         set_field_errors({})
         try:
             data = await api_login(username, password)
-            set_session(data["token"], data["user"])
+            set_session(data["token"], data["refresh"], data["user"])
             page.navigate("/")
         except ApiError as ex:
             general, fields = split_errors(ex.errors) if ex.errors else (str(ex), {})
