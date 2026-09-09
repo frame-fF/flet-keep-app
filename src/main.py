@@ -73,21 +73,27 @@ def page_view(title: str, content: ft.Control, **view_kwargs) -> ft.View:
 
 @ft.component
 def Home():
-    return page_view(
-        "Home",
-        ft.Text("This is the Home page"),
-        floating_action_button=ft.FloatingActionButton(icon=ft.Icons.ADD, on_click=lambda e: None),
-    )
+    appbar_title = "Home"
+    content = ft.Text("This is the Home page")
+    fab = ft.FloatingActionButton(icon=ft.Icons.ADD, on_click=lambda e: None)
+
+    return page_view(appbar_title, content, floating_action_button=fab)
 
 
 @ft.component
 def Archive():
-    return page_view("Archive", ft.Text("This is the Archive page"))
+    appbar_title = "Archive"
+    content = ft.Text("This is the Archive page")
+
+    return page_view(appbar_title, content)
 
 
 @ft.component
 def Trash():
-    return page_view("Trash", ft.Text("This is the Trash page"))
+    appbar_title = "Trash"
+    content = ft.Text("This is the Trash page")
+
+    return page_view(appbar_title, content)
 
 
 @ft.component
