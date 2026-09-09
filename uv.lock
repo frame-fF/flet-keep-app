@@ -368,6 +368,18 @@ wheels = [
 ]
 
 [[package]]
+name = "flet-color-pickers"
+version = "0.86.5"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "flet" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/12/23/50b771d30f6f16b0bb3314618a13b635fd6b792a4aa6b18ccd3746ceb956/flet_color_pickers-0.86.5.tar.gz", hash = "sha256:1053c0484139e1685c8e8384ab2728fe631c99e3136d6e92b9a381e241f19ce3", size = 12442, upload-time = "2026-08-01T16:52:02.976Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c7/6c/177effebfa2b6c5b78cc5f22cd6c87f585cbd59bcfbfaef7b6460f6f632b/flet_color_pickers-0.86.5-py3-none-any.whl", hash = "sha256:28e23a0ecf55fe8755ef7937071169d123c606b78e25e2994fece0fe1b0b9714", size = 19330, upload-time = "2026-08-01T16:52:02.045Z" },
+]
+
+[[package]]
 name = "flet-desktop"
 version = "0.86.5"
 source = { registry = "https://pypi.org/simple" }
@@ -386,6 +398,7 @@ version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
     { name = "flet" },
+    { name = "flet-color-pickers" },
     { name = "httpx" },
 ]
 
@@ -400,6 +413,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "flet", specifier = ">=0.86.5" },
+    { name = "flet-color-pickers", specifier = ">=0.86.5" },
     { name = "httpx", specifier = ">=0.28.1" },
 ]
 

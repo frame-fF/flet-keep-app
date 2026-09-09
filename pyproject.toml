@@ -9,6 +9,7 @@ authors = [
 ]
 dependencies = [
     "flet>=0.86.5",
+    "flet-color-pickers>=0.86.5",
     "httpx>=0.28.1",
 ]
 

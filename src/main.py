@@ -1,10 +1,52 @@
 import flet as ft
+from flet_color_pickers import BlockPicker
 
-from api import ApiError, login as api_login, logout as api_logout, register as api_register, split_errors
+from api import (
+    ApiError,
+    create_note as api_create_note,
+    login as api_login,
+    logout as api_logout,
+    register as api_register,
+    split_errors,
+)
 from auth_state import clear_session, get_refresh_token, get_token, is_logged_in, set_session
 
 NAV_ROUTES = ["/", "/archive", "/trash"]
 BAR_COLOR = ft.Colors.SURFACE_CONTAINER
+NOTE_COLOR_SWATCHES = {
+    "default": "#ffffff",
+    "red": "#f28b82",
+    "orange": "#fbbc04",
+    "yellow": "#fff475",
+    "green": "#ccff90",
+    "teal": "#a7ffeb",
+    "blue": "#aecbfa",
+    "purple": "#d7aefb",
+    "pink": "#fdcfe8",
+    "brown": "#e6c9a8",
+    "gray": "#e8eaed",
+}
+def _normalize_hex(value: str) -> str:
+    value = value.strip().lower()
+    if not value.startswith("#"):
+        value = f"#{value}"
+    if len(value) == 9:  # "#aarrggbb" (BlockPicker includes an alpha channel) -> "#rrggbb"
+        value = "#" + value[3:]
+    return value
+
+
+SWATCH_TO_COLOR_NAME = {
+    _normalize_hex(hex_value): name for name, hex_value in NOTE_COLOR_SWATCHES.items()
+}
+
+
+def color_name_for_hex(hex_value: str) -> str:
+    return SWATCH_TO_COLOR_NAME.get(_normalize_hex(hex_value), "default")
+
+
+def dialog_bgcolor_for(color_name: str) -> str | None:
+    """"default" adapts to the current theme; other colors keep their fixed pastel."""
+    return None if color_name == "default" else NOTE_COLOR_SWATCHES[color_name]
 
 
 def _is_currently_dark(page: ft.Page) -> bool:
@@ -107,12 +149,165 @@ def page_view(title: str, content: ft.Control, **view_kwargs) -> ft.View:
 
 
 @ft.component
+def AddNoteFab():
+    """FAB that opens a Keep-style note editor dialog and posts the note to the API."""
+    show, set_show = ft.use_state(False)
+    title, set_title = ft.use_state("")
+    items, set_items = ft.use_state([])
+    color, set_color = ft.use_state("default")
+    pinned, set_pinned = ft.use_state(False)
+    saving, set_saving = ft.use_state(False)
+    error_text, set_error_text = ft.use_state("")
+    picking_color, set_picking_color = ft.use_state(False)
+
+    def reset_and_close():
+        set_show(False)
+        set_title("")
+        set_items([])
+        set_color("default")
+        set_pinned(False)
+        set_error_text("")
+
+    def add_item(e):
+        set_items(items + [{"text": "", "checked": False}])
+
+    def update_item_text(index: int, value: str):
+        new_items = [dict(item) for item in items]
+        new_items[index]["text"] = value
+        set_items(new_items)
+
+    def toggle_item_checked(index: int):
+        new_items = [dict(item) for item in items]
+        new_items[index]["checked"] = not new_items[index]["checked"]
+        set_items(new_items)
+
+    def remove_item(index: int):
+        set_items(items[:index] + items[index + 1 :])
+
+    def handle_color_pick(e):
+        set_color(color_name_for_hex(e.data))
+        set_picking_color(False)
+
+    async def save_note(e):
+        set_saving(True)
+        set_error_text("")
+        try:
+            checklist_items = [
+                {"text": item["text"], "order": i + 1}
+                for i, item in enumerate(items)
+                if item["text"].strip()
+            ]
+            await api_create_note(
+                get_token(),
+                title=title.strip() or "Untitled",
+                content="",
+                color=color,
+                is_pinned=pinned,
+                checklist_items=checklist_items,
+            )
+            reset_and_close()
+        except ApiError as ex:
+            set_error_text(str(ex))
+            set_saving(False)
+
+    checklist_rows = [
+        ft.Row(
+            [
+                ft.Checkbox(
+                    value=item["checked"],
+                    on_change=lambda e, i=i: toggle_item_checked(i),
+                ),
+                ft.TextField(
+                    value=item["text"],
+                    hint_text="รายการ",
+                    border=ft.InputBorder.NONE,
+                    expand=True,
+                    autofocus=True,
+                    on_change=lambda e, i=i: update_item_text(i, e.control.value),
+                ),
+                ft.IconButton(
+                    icon=ft.Icons.CLOSE,
+                    icon_size=16,
+                    on_click=lambda e, i=i: remove_item(i),
+                ),
+            ]
+        )
+        for i, item in enumerate(items)
+    ]
+
+    editor = ft.Container(
+        width=350,
+        content=ft.Column(
+            [
+                ft.TextField(
+                    value=title,
+                    hint_text="ชื่อเรื่อง",
+                    border=ft.InputBorder.NONE,
+                    text_style=ft.TextStyle(size=18, weight=ft.FontWeight.BOLD),
+                    on_change=lambda e: set_title(e.control.value),
+                ),
+                *checklist_rows,
+                ft.TextButton("+  รายการ", on_click=add_item),
+                ft.Container(height=20 if error_text else 0, content=ft.Text(error_text, color=ft.Colors.ERROR)),
+                ft.Row(
+                    [
+                        ft.IconButton(
+                            icon=ft.Icons.PALETTE_OUTLINED,
+                            on_click=lambda e: set_picking_color(True),
+                        ),
+                        ft.IconButton(
+                            icon=ft.Icons.PUSH_PIN if pinned else ft.Icons.PUSH_PIN_OUTLINED,
+                            on_click=lambda e: set_pinned(not pinned),
+                        ),
+                        ft.Container(expand=True),
+                        ft.TextButton(
+                            content=ft.ProgressRing(width=16, height=16, stroke_width=2)
+                            if saving
+                            else ft.Text("ปิด"),
+                            on_click=save_note,
+                            disabled=saving,
+                        ),
+                    ]
+                ),
+            ],
+            tight=True,
+        ),
+    )
+
+    ft.use_dialog(
+        ft.AlertDialog(
+            bgcolor=dialog_bgcolor_for(color),
+            content=editor,
+            on_dismiss=lambda: reset_and_close(),
+        )
+        if show
+        else None
+    )
+
+    ft.use_dialog(
+        ft.AlertDialog(
+            modal=True,
+            title=ft.Text("เลือกสี"),
+            content=BlockPicker(
+                color=NOTE_COLOR_SWATCHES[color],
+                available_colors=list(NOTE_COLOR_SWATCHES.values()),
+                on_color_change=handle_color_pick,
+            ),
+            actions=[ft.TextButton("ปิด", on_click=lambda e: set_picking_color(False))],
+        )
+        if picking_color
+        else None
+    )
+
+    return ft.FloatingActionButton(icon=ft.Icons.ADD, on_click=lambda e: set_show(True))
+
+
+@ft.component
 def Home():
     appbar_title = "Home"
     content = ft.Text("This is the Home page")
-    fab = ft.FloatingActionButton(icon=ft.Icons.ADD, on_click=lambda e: None)
 
-    return page_view(appbar_title, content, floating_action_button=fab)
+    return page_view(appbar_title, content, floating_action_button=AddNoteFab())
 
 
 @ft.component
