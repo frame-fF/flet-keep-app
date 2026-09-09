@@ -167,6 +167,7 @@ def AddNoteFab():
         set_color("default")
         set_pinned(False)
         set_error_text("")
+        set_saving(False)
 
     def add_item(e):
         set_items(items + [{"text": "", "checked": False}])
@@ -193,7 +194,7 @@ def AddNoteFab():
         set_error_text("")
         try:
             checklist_items = [
-                {"text": item["text"], "order": i + 1}
+                {"text": item["text"], "order": i + 1, "is_checked": item["checked"]}
                 for i, item in enumerate(items)
                 if item["text"].strip()
             ]
@@ -239,12 +240,18 @@ def AddNoteFab():
         width=350,
         content=ft.Column(
             [
-                ft.TextField(
-                    value=title,
-                    hint_text="ชื่อเรื่อง",
-                    border=ft.InputBorder.NONE,
-                    text_style=ft.TextStyle(size=18, weight=ft.FontWeight.BOLD),
-                    on_change=lambda e: set_title(e.control.value),
+                ft.Row(
+                    [
+                        ft.TextField(
+                            value=title,
+                            hint_text="ชื่อเรื่อง",
+                            border=ft.InputBorder.NONE,
+                            text_style=ft.TextStyle(size=18, weight=ft.FontWeight.BOLD),
+                            expand=True,
+                            on_change=lambda e: set_title(e.control.value),
+                        ),
+                        ft.IconButton(icon=ft.Icons.CLOSE, on_click=lambda e: reset_and_close()),
+                    ]
                 ),
                 *checklist_rows,
                 ft.TextButton("+  รายการ", on_click=add_item),
@@ -263,7 +270,7 @@ def AddNoteFab():
                         ft.TextButton(
                             content=ft.ProgressRing(width=16, height=16, stroke_width=2)
                             if saving
-                            else ft.Text("ปิด"),
+                            else ft.Text("บันทึก"),
                             on_click=save_note,
                             disabled=saving,
                         ),
