@@ -74,12 +74,12 @@ def nav_bar(selected_index: int) -> ft.NavigationBar:
 def page_view(title: str, content: ft.Control, **view_kwargs) -> ft.View:
     page = ft.context.page
     route = ft.use_route_location()
+    is_dark, toggle_theme = use_theme_toggle()
 
     if not is_logged_in():
         page.navigate("/login")
         return ft.View(route=route, controls=[ft.ProgressRing()])
 
-    is_dark, toggle_theme = use_theme_toggle()
     index = NAV_ROUTES.index(route)
 
     async def open_profile_menu(e):
