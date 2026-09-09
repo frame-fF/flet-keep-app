@@ -1,3 +1,5 @@
+import uuid
+
 import flet as ft
 from flet_color_pickers import BlockPicker
 
@@ -171,7 +173,7 @@ def AddNoteFab(on_saved=None):
         set_saving(False)
 
     def add_item(e):
-        set_items(items + [{"text": "", "checked": False}])
+        set_items(items + [{"id": uuid.uuid4().hex, "text": "", "checked": False}])
 
     def update_item_text(index: int, value: str):
         new_items = [dict(item) for item in items]
@@ -234,7 +236,8 @@ def AddNoteFab(on_saved=None):
                     icon_size=16,
                     on_click=lambda e, i=i: remove_item(i),
                 ),
-            ]
+            ],
+            key=item["id"],
         )
         for i, item in enumerate(items)
     ]
