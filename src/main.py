@@ -7,15 +7,38 @@ NAV_ROUTES = ["/", "/archive", "/trash"]
 BAR_COLOR = ft.Colors.SURFACE_CONTAINER
 
 
-def app_bar(title: str, is_dark: bool, toggle_theme, on_profile_click) -> ft.AppBar:
+def _is_currently_dark(page: ft.Page) -> bool:
+    if page.theme_mode == ft.ThemeMode.DARK:
+        return True
+    if page.theme_mode == ft.ThemeMode.LIGHT:
+        return False
+    return page.platform_brightness == ft.Brightness.DARK
+
+
+@ft.component
+def ThemeToggleButton():
+    """Owns its own dark-mode state, so toggling it never re-renders the parent shell."""
+    page = ft.context.page
+    is_dark, set_is_dark = ft.use_state(lambda: _is_currently_dark(page))
+
+    def toggle_theme(e):
+        new_value = not is_dark
+        set_is_dark(new_value)
+        page.theme_mode = ft.ThemeMode.DARK if new_value else ft.ThemeMode.LIGHT
+        page.update()
+
+    return ft.IconButton(
+        icon=ft.Icons.DARK_MODE if is_dark else ft.Icons.LIGHT_MODE,
+        on_click=toggle_theme,
+    )
+
+
+def app_bar(title: str, on_profile_click) -> ft.AppBar:
     return ft.AppBar(
         title=ft.Text(title),
         bgcolor=BAR_COLOR,
         actions=[
-            ft.IconButton(
-                icon=ft.Icons.DARK_MODE if is_dark else ft.Icons.LIGHT_MODE,
-                on_click=lambda e: toggle_theme(),
-            ),
+            ThemeToggleButton(),
             ft.IconButton(
                 icon=ft.Icons.ACCOUNT_CIRCLE,
                 on_click=on_profile_click,
@@ -35,28 +58,6 @@ def profile_drawer(on_logout) -> ft.NavigationDrawer:
     )
 
 
-def _is_currently_dark(page: ft.Page) -> bool:
-    if page.theme_mode == ft.ThemeMode.DARK:
-        return True
-    if page.theme_mode == ft.ThemeMode.LIGHT:
-        return False
-    return page.platform_brightness == ft.Brightness.DARK
-
-
-def use_theme_toggle():
-    """Local dark-mode state, seeded from what's actually on screen right now."""
-    page = ft.context.page
-    is_dark, set_is_dark = ft.use_state(lambda: _is_currently_dark(page))
-
-    def toggle_theme():
-        new_value = not is_dark
-        set_is_dark(new_value)
-        page.theme_mode = ft.ThemeMode.DARK if new_value else ft.ThemeMode.LIGHT
-        page.update()
-
-    return is_dark, toggle_theme
-
-
 def nav_bar(selected_index: int) -> ft.NavigationBar:
     page = ft.context.page
     return ft.NavigationBar(
@@ -74,7 +75,6 @@ def nav_bar(selected_index: int) -> ft.NavigationBar:
 def page_view(title: str, content: ft.Control, **view_kwargs) -> ft.View:
     page = ft.context.page
     route = ft.use_route_location()
-    is_dark, toggle_theme = use_theme_toggle()
 
     if not is_logged_in():
         page.navigate("/login")
@@ -96,7 +96,7 @@ def page_view(title: str, content: ft.Control, **view_kwargs) -> ft.View:
 
     view = ft.View(
         route=route,
-        appbar=app_bar(title, is_dark, toggle_theme, open_profile_menu),
+        appbar=app_bar(title, open_profile_menu),
         navigation_bar=nav_bar(index),
         end_drawer=profile_drawer(handle_logout),
         controls=[content],
