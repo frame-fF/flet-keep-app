@@ -49,6 +49,10 @@ async def login(username_or_email: str, password: str) -> dict:
     )
 
 
+async def refresh_token(refresh: str) -> dict:
+    return await _post("/api/user/token/refresh/", {"refresh": refresh})
+
+
 async def logout(token: str, refresh: str) -> None:
     async with httpx.AsyncClient(base_url=BASE_URL, timeout=10) as client:
         r = await client.post(

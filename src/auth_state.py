@@ -19,6 +19,10 @@ def set_session(token: str, refresh: str, user: dict) -> None:
     SESSION["user"] = user
 
 
+def update_token(token: str) -> None:
+    SESSION["token"] = token
+
+
 def clear_session() -> None:
     SESSION["token"] = None
     SESSION["refresh"] = None
