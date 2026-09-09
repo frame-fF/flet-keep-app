@@ -4,8 +4,7 @@ NAV_ROUTES = ["/", "/archive", "/trash"]
 BAR_COLOR = ft.Colors.SURFACE_CONTAINER
 
 
-def app_bar(title: str, is_dark: bool, toggle_theme) -> ft.AppBar:
-    page = ft.context.page
+def app_bar(title: str, is_dark: bool, toggle_theme, on_profile_click) -> ft.AppBar:
     return ft.AppBar(
         title=ft.Text(title),
         bgcolor=BAR_COLOR,
@@ -16,9 +15,20 @@ def app_bar(title: str, is_dark: bool, toggle_theme) -> ft.AppBar:
             ),
             ft.IconButton(
                 icon=ft.Icons.ACCOUNT_CIRCLE,
-                on_click=lambda e: page.navigate("/profile"),
+                on_click=on_profile_click,
             ),
         ],
+    )
+
+
+def profile_drawer() -> ft.NavigationDrawer:
+    return ft.NavigationDrawer(
+        controls=[
+            ft.Container(height=12),
+            ft.ListTile(leading=ft.Icon(ft.Icons.ACCOUNT_CIRCLE), title=ft.Text("Profile")),
+            ft.ListTile(leading=ft.Icon(ft.Icons.SETTINGS_OUTLINED), title=ft.Text("Settings")),
+            ft.ListTile(leading=ft.Icon(ft.Icons.LOGOUT), title=ft.Text("Logout")),
+        ]
     )
 
 
@@ -62,13 +72,19 @@ def page_view(title: str, content: ft.Control, **view_kwargs) -> ft.View:
     route = ft.use_route_location()
     is_dark, toggle_theme = use_theme_toggle()
     index = NAV_ROUTES.index(route)
-    return ft.View(
+
+    async def open_profile_menu(e):
+        await view.show_end_drawer()
+
+    view = ft.View(
         route=route,
-        appbar=app_bar(title, is_dark, toggle_theme),
+        appbar=app_bar(title, is_dark, toggle_theme, open_profile_menu),
         navigation_bar=nav_bar(index),
+        end_drawer=profile_drawer(),
         controls=[content],
         **view_kwargs,
     )
+    return view
 
 
 @ft.component
