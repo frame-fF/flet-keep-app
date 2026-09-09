@@ -9,9 +9,10 @@ class ApiError(Exception):
         self.errors = errors or {}
 
 
-async def _post(path: str, json: dict) -> dict:
+async def _post(path: str, json: dict, token: str | None = None) -> dict:
+    headers = {"Authorization": f"Bearer {token}"} if token else {}
     async with httpx.AsyncClient(base_url=BASE_URL, timeout=10) as client:
-        r = await client.post(path, json=json)
+        r = await client.post(path, json=json, headers=headers)
     if r.status_code >= 400:
         try:
             errors = r.json()
@@ -51,6 +52,29 @@ async def login(username_or_email: str, password: str) -> dict:
 
 async def refresh_token(refresh: str) -> dict:
     return await _post("/api/user/token/refresh/", {"refresh": refresh})
+
+
+async def create_note(
+    token: str,
+    title: str,
+    content: str,
+    color: str = "default",
+    is_pinned: bool = False,
+    labels: list[str] | None = None,
+    checklist_items: list[dict] | None = None,
+) -> dict:
+    return await _post(
+        "/api/keep/notes/",
+        {
+            "title": title,
+            "content": content,
+            "color": color,
+            "is_pinned": is_pinned,
+            "labels": labels or [],
+            "checklist_items": checklist_items or [],
+        },
+        token=token,
+    )
 
 
 async def logout(token: str, refresh: str) -> None:
