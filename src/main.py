@@ -1,5 +1,8 @@
 import flet as ft
 
+from api import ApiError, login as api_login, register as api_register
+from auth_state import is_logged_in, set_session
+
 NAV_ROUTES = ["/", "/archive", "/trash"]
 BAR_COLOR = ft.Colors.SURFACE_CONTAINER
 
@@ -69,7 +72,13 @@ def nav_bar(selected_index: int) -> ft.NavigationBar:
 
 
 def page_view(title: str, content: ft.Control, **view_kwargs) -> ft.View:
+    page = ft.context.page
     route = ft.use_route_location()
+
+    if not is_logged_in():
+        page.navigate("/login")
+        return ft.View(route=route, controls=[ft.ProgressRing()])
+
     is_dark, toggle_theme = use_theme_toggle()
     index = NAV_ROUTES.index(route)
 
@@ -113,12 +122,137 @@ def Trash():
 
 
 @ft.component
+def LoginForm():
+    page = ft.context.page
+    error_text, set_error_text = ft.use_state("")
+    loading, set_loading = ft.use_state(False)
+
+    username, set_username = ft.use_state("")
+    password, set_password = ft.use_state("")
+
+    async def handle_login(e):
+        set_loading(True)
+        set_error_text("")
+        try:
+            data = await api_login(username, password)
+            set_session(data["token"], data["user"])
+            page.navigate("/")
+        except ApiError as ex:
+            set_error_text(str(ex))
+            set_loading(False)
+
+    return ft.Column(
+        [
+            ft.Text("Login", size=28, weight=ft.FontWeight.BOLD),
+            ft.TextField(
+                label="Username or Email",
+                value=username,
+                on_change=lambda e: set_username(e.control.value),
+            ),
+            ft.TextField(
+                label="Password",
+                password=True,
+                can_reveal_password=True,
+                value=password,
+                on_change=lambda e: set_password(e.control.value),
+            ),
+            ft.Container(height=40, content=ft.Text(error_text, color=ft.Colors.ERROR)),
+            ft.FilledButton(
+                content=ft.ProgressRing(width=16, height=16, stroke_width=2, color=ft.Colors.ON_PRIMARY)
+                if loading
+                else ft.Text("Login"),
+                on_click=handle_login,
+                disabled=loading,
+            ),
+            ft.TextButton(
+                "Don't have an account? Register",
+                on_click=lambda e: page.navigate("/register"),
+            ),
+        ],
+        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+        width=350,
+    )
+
+
+@ft.component
+def Login():
+    return ft.View(
+        route="/login",
+        vertical_alignment=ft.MainAxisAlignment.CENTER,
+        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+        controls=[LoginForm()],
+    )
+
+
+@ft.component
+def RegisterForm():
+    page = ft.context.page
+    error_text, set_error_text = ft.use_state("")
+    loading, set_loading = ft.use_state(False)
+
+    username, set_username = ft.use_state("")
+    email, set_email = ft.use_state("")
+    password, set_password = ft.use_state("")
+
+    async def handle_register(e):
+        set_loading(True)
+        set_error_text("")
+        try:
+            await api_register(username, email, password)
+            page.navigate("/login")
+        except ApiError as ex:
+            set_error_text(str(ex))
+            set_loading(False)
+
+    return ft.Column(
+        [
+            ft.Text("Register", size=28, weight=ft.FontWeight.BOLD),
+            ft.TextField(label="Username", value=username, on_change=lambda e: set_username(e.control.value)),
+            ft.TextField(label="Email", value=email, on_change=lambda e: set_email(e.control.value)),
+            ft.TextField(
+                label="Password",
+                password=True,
+                can_reveal_password=True,
+                value=password,
+                on_change=lambda e: set_password(e.control.value),
+            ),
+            ft.Container(height=40, content=ft.Text(error_text, color=ft.Colors.ERROR)),
+            ft.FilledButton(
+                content=ft.ProgressRing(width=16, height=16, stroke_width=2, color=ft.Colors.ON_PRIMARY)
+                if loading
+                else ft.Text("Register"),
+                on_click=handle_register,
+                disabled=loading,
+            ),
+            ft.TextButton(
+                "Already have an account? Login",
+                on_click=lambda e: page.navigate("/login"),
+            ),
+        ],
+        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+        width=350,
+    )
+
+
+@ft.component
+def Register():
+    return ft.View(
+        route="/register",
+        vertical_alignment=ft.MainAxisAlignment.CENTER,
+        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+        controls=[RegisterForm()],
+    )
+
+
+@ft.component
 def App():
     return ft.Router(
         [
             ft.Route(path="/", component=Home),
             ft.Route(path="/archive", component=Archive),
             ft.Route(path="/trash", component=Trash),
+            ft.Route(path="/login", component=Login),
+            ft.Route(path="/register", component=Register),
         ],
         manage_views=True,
     )
