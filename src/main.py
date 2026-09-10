@@ -209,6 +209,14 @@ def NoteEditorFab(on_saved=None, open_ref=None):
     def remove_item(index: int):
         set_items(items[:index] + items[index + 1 :])
 
+    def handle_reorder(e: ft.OnReorderEvent):
+        if e.old_index is None or e.new_index is None:
+            return
+        new_items = list(items)
+        moved = new_items.pop(e.old_index)
+        new_items.insert(e.new_index, moved)
+        set_items(new_items)
+
     def handle_color_pick(e):
         set_color(color_name_for_hex(e.data))
         set_picking_color(False)
@@ -256,6 +264,11 @@ def NoteEditorFab(on_saved=None, open_ref=None):
     checklist_rows = [
         ft.Row(
             [
+                ft.ReorderableDragHandle(
+                    key=f"drag_handle_{item['id']}",
+                    content=ft.Icon(ft.Icons.DRAG_INDICATOR, size=18),
+                    mouse_cursor=ft.MouseCursor.GRAB,
+                ),
                 ft.Checkbox(
                     value=item["checked"],
                     on_change=lambda e, i=i: toggle_item_checked(i),
@@ -279,6 +292,13 @@ def NoteEditorFab(on_saved=None, open_ref=None):
         for i, item in enumerate(items)
     ]
 
+    checklist_view = ft.ReorderableListView(
+        controls=checklist_rows,
+        show_default_drag_handles=False,
+        on_reorder=handle_reorder,
+        height=56 * len(items),
+    )
+
     editor = ft.Container(
         width=350,
         content=ft.Column(
@@ -296,7 +316,7 @@ def NoteEditorFab(on_saved=None, open_ref=None):
                         ft.IconButton(icon=ft.Icons.CLOSE, on_click=lambda e: reset_and_close()),
                     ]
                 ),
-                *checklist_rows,
+                checklist_view,
                 ft.TextButton("+  รายการ", on_click=add_item),
                 ft.Container(height=20 if error_text else 0, content=ft.Text(error_text, color=ft.Colors.ERROR)),
                 ft.Row(
