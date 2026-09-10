@@ -11,6 +11,7 @@ from api import (
     logout as api_logout,
     register as api_register,
     split_errors,
+    update_note as api_update_note,
 )
 from auth_state import clear_session, get_refresh_token, get_token, is_logged_in, set_session
 
@@ -152,9 +153,10 @@ def page_view(title: str, content: ft.Control, **view_kwargs) -> ft.View:
 
 
 @ft.component
-def AddNoteFab(on_saved=None):
-    """FAB that opens a Keep-style note editor dialog and posts the note to the API."""
+def NoteEditorFab(on_saved=None, open_ref=None):
+    """FAB that opens a Keep-style note editor dialog for a new or existing note."""
     show, set_show = ft.use_state(False)
+    editing_id, set_editing_id = ft.use_state(None)
     title, set_title = ft.use_state("")
     items, set_items = ft.use_state([])
     color, set_color = ft.use_state("default")
@@ -165,12 +167,30 @@ def AddNoteFab(on_saved=None):
 
     def reset_and_close():
         set_show(False)
+        set_editing_id(None)
         set_title("")
         set_items([])
         set_color("default")
         set_pinned(False)
         set_error_text("")
         set_saving(False)
+
+    def open_for_edit(note: dict):
+        set_editing_id(note["id"])
+        set_title(note["title"])
+        set_items(
+            [
+                {"id": item["id"], "text": item["text"], "checked": item["is_checked"]}
+                for item in sorted(note["checklist_items"], key=lambda i: i["order"])
+            ]
+        )
+        set_color(note["color"])
+        set_pinned(note["is_pinned"])
+        set_error_text("")
+        set_show(True)
+
+    if open_ref is not None:
+        open_ref.current = open_for_edit
 
     def add_item(e):
         set_items(items + [{"id": uuid.uuid4().hex, "text": "", "checked": False}])
@@ -201,14 +221,25 @@ def AddNoteFab(on_saved=None):
                 for i, item in enumerate(items)
                 if item["text"].strip()
             ]
-            await api_create_note(
-                get_token(),
-                title=title.strip() or "Untitled",
-                content="",
-                color=color,
-                is_pinned=pinned,
-                checklist_items=checklist_items,
-            )
+            if editing_id is None:
+                await api_create_note(
+                    get_token(),
+                    title=title.strip() or "Untitled",
+                    content="",
+                    color=color,
+                    is_pinned=pinned,
+                    checklist_items=checklist_items,
+                )
+            else:
+                await api_update_note(
+                    get_token(),
+                    editing_id,
+                    title=title.strip() or "Untitled",
+                    content="",
+                    color=color,
+                    is_pinned=pinned,
+                    checklist_items=checklist_items,
+                )
             reset_and_close()
             if on_saved:
                 on_saved()
@@ -312,10 +343,19 @@ def AddNoteFab(on_saved=None):
         else None
     )
 
-    return ft.FloatingActionButton(icon=ft.Icons.ADD, on_click=lambda e: set_show(True))
+    def open_for_new(e):
+        set_editing_id(None)
+        set_title("")
+        set_items([])
+        set_color("default")
+        set_pinned(False)
+        set_error_text("")
+        set_show(True)
+
+    return ft.FloatingActionButton(icon=ft.Icons.ADD, on_click=open_for_new)
 
 
-def note_card(note: dict) -> ft.Control:
+def note_card(note: dict, on_click=None) -> ft.Control:
     bgcolor = dialog_bgcolor_for(note["color"])
 
     body: list[ft.Control] = [
@@ -344,12 +384,16 @@ def note_card(note: dict) -> ft.Control:
 
     return ft.Card(
         bgcolor=bgcolor,
-        content=ft.Container(padding=12, content=ft.Column(body, tight=True)),
+        content=ft.Container(
+            padding=12,
+            content=ft.Column(body, tight=True),
+            on_click=on_click,
+        ),
     )
 
 
 @ft.component
-def NotesList(reload_ref=None):
+def NotesList(reload_ref=None, open_editor_ref=None):
     page = ft.context.page
     notes, set_notes = ft.use_state([])
     loading, set_loading = ft.use_state(True)
@@ -380,8 +424,12 @@ def NotesList(reload_ref=None):
     if not notes:
         return ft.Text("ยังไม่มีโน้ต", color=ft.Colors.ON_SURFACE_VARIANT)
 
+    def edit_note(note):
+        if open_editor_ref is not None and open_editor_ref.current is not None:
+            open_editor_ref.current(note)
+
     return ft.Column(
-        [note_card(note) for note in notes],
+        [note_card(note, on_click=lambda e, n=note: edit_note(n)) for note in notes],
         scroll=ft.ScrollMode.AUTO,
         expand=True,
     )
@@ -391,8 +439,12 @@ def NotesList(reload_ref=None):
 def Home():
     appbar_title = "Home"
     reload_notes_ref = ft.use_ref(None)
-    content = NotesList(reload_ref=reload_notes_ref)
-    fab = AddNoteFab(on_saved=lambda: reload_notes_ref.current and reload_notes_ref.current())
+    open_editor_ref = ft.use_ref(None)
+    content = NotesList(reload_ref=reload_notes_ref, open_editor_ref=open_editor_ref)
+    fab = NoteEditorFab(
+        on_saved=lambda: reload_notes_ref.current and reload_notes_ref.current(),
+        open_ref=open_editor_ref,
+    )
 
     return page_view(appbar_title, content, floating_action_button=fab)
 

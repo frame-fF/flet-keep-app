@@ -35,6 +35,15 @@ async def _get(path: str, token: str | None = None):
     return r.json()
 
 
+async def _patch(path: str, json: dict, token: str | None = None) -> dict:
+    headers = {"Authorization": f"Bearer {token}"} if token else {}
+    async with httpx.AsyncClient(base_url=BASE_URL, timeout=10) as client:
+        r = await client.patch(path, json=json, headers=headers)
+    if r.status_code >= 400:
+        _raise_for_error(r)
+    return r.json()
+
+
 def split_errors(errors: dict) -> tuple[str, dict[str, str]]:
     """Split a DRF-style error dict into a general message and per-field messages."""
     general = errors.get("detail") or errors.get("non_field_errors")
@@ -92,6 +101,10 @@ async def create_note(
 
 async def list_notes(token: str) -> list[dict]:
     return await _get("/api/keep/notes/", token=token)
+
+
+async def update_note(token: str, note_id: int, **fields) -> dict:
+    return await _patch(f"/api/keep/notes/{note_id}/", fields, token=token)
 
 
 async def logout(token: str, refresh: str) -> None:
