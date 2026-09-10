@@ -14,6 +14,7 @@ from api import (
     update_note as api_update_note,
 )
 from auth_state import clear_session, get_refresh_token, get_token, is_logged_in, set_session
+from models import ChecklistItem, Note
 
 NAV_ROUTES = ["/", "/archive", "/trash"]
 BAR_COLOR = ft.Colors.SURFACE_CONTAINER
@@ -175,17 +176,17 @@ def NoteEditorFab(on_saved=None, open_ref=None):
         set_error_text("")
         set_saving(False)
 
-    def open_for_edit(note: dict):
-        set_editing_id(note["id"])
-        set_title(note["title"])
+    def open_for_edit(note: Note):
+        set_editing_id(note.id)
+        set_title(note.title)
         set_items(
             [
-                {"id": item["id"], "text": item["text"], "checked": item["is_checked"]}
-                for item in sorted(note["checklist_items"], key=lambda i: i["order"])
+                {"id": item.id, "text": item.text, "checked": item.is_checked}
+                for item in sorted(note.checklist_items, key=lambda i: i.order)
             ]
         )
-        set_color(note["color"])
-        set_pinned(note["is_pinned"])
+        set_color(note.color)
+        set_pinned(note.is_pinned)
         set_error_text("")
         set_show(True)
 
@@ -217,7 +218,12 @@ def NoteEditorFab(on_saved=None, open_ref=None):
         set_error_text("")
         try:
             checklist_items = [
-                {"text": item["text"], "order": i + 1, "is_checked": item["checked"]}
+                ChecklistItem(
+                    id=item["id"] if isinstance(item["id"], int) else None,
+                    text=item["text"],
+                    order=i + 1,
+                    is_checked=item["checked"],
+                )
                 for i, item in enumerate(items)
                 if item["text"].strip()
             ]
@@ -355,28 +361,28 @@ def NoteEditorFab(on_saved=None, open_ref=None):
     return ft.FloatingActionButton(icon=ft.Icons.ADD, on_click=open_for_new)
 
 
-def note_card(note: dict, on_click=None) -> ft.Control:
-    bgcolor = dialog_bgcolor_for(note["color"])
+def note_card(note: Note, on_click=None) -> ft.Control:
+    bgcolor = dialog_bgcolor_for(note.color)
 
     body: list[ft.Control] = [
         ft.Row(
             [
-                ft.Text(note["title"] or "Untitled", weight=ft.FontWeight.BOLD, expand=True),
-                ft.Icon(ft.Icons.PUSH_PIN, size=16) if note["is_pinned"] else ft.Container(),
+                ft.Text(note.title or "Untitled", weight=ft.FontWeight.BOLD, expand=True),
+                ft.Icon(ft.Icons.PUSH_PIN, size=16) if note.is_pinned else ft.Container(),
             ]
         ),
     ]
-    if note["content"]:
-        body.append(ft.Text(note["content"]))
+    if note.content:
+        body.append(ft.Text(note.content))
 
-    for item in sorted(note["checklist_items"], key=lambda i: i["order"]):
+    for item in sorted(note.checklist_items, key=lambda i: i.order):
         body.append(
             ft.Row(
                 [
-                    ft.Checkbox(value=item["is_checked"], disabled=True),
+                    ft.Checkbox(value=item.is_checked, disabled=True),
                     ft.Text(
-                        item["text"],
-                        color=ft.Colors.ON_SURFACE_VARIANT if item["is_checked"] else None,
+                        item.text,
+                        color=ft.Colors.ON_SURFACE_VARIANT if item.is_checked else None,
                     ),
                 ]
             )
@@ -481,7 +487,7 @@ def LoginForm():
         set_field_errors({})
         try:
             data = await api_login(username, password)
-            set_session(data["token"], data["refresh"], data["user"])
+            set_session(data.token, data.refresh, data.user)
             page.navigate("/")
         except ApiError as ex:
             general, fields = split_errors(ex.errors) if ex.errors else (str(ex), {})

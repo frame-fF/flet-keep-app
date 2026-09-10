@@ -400,6 +400,7 @@ dependencies = [
     { name = "flet" },
     { name = "flet-color-pickers" },
     { name = "httpx" },
+    { name = "pydantic" },
 ]
 
 [package.dev-dependencies]
@@ -415,6 +416,7 @@ requires-dist = [
     { name = "flet", specifier = ">=0.86.5" },
     { name = "flet-color-pickers", specifier = ">=0.86.5" },
     { name = "httpx", specifier = ">=0.28.1" },
+    { name = "pydantic", specifier = ">=2.13.5" },
 ]
 
 [package.metadata.requires-dev]
