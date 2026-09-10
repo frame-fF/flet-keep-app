@@ -454,9 +454,9 @@ def NotesList(reload_ref=None, open_editor_ref=None):
         if open_editor_ref is not None and open_editor_ref.current is not None:
             open_editor_ref.current(note)
 
-    return ft.Column(
-        [note_card(note, on_click=lambda e, n=note: edit_note(n)) for note in notes],
-        scroll=ft.ScrollMode.AUTO,
+    return ft.ListView(
+        controls=[note_card(note, on_click=lambda e, n=note: edit_note(n)) for note in notes],
+        spacing=8,
         expand=True,
     )
 
