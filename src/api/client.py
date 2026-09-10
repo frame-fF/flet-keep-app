@@ -1,6 +1,6 @@
 import httpx
 
-from models import ChecklistItem, LoginResponse, Note
+from models import ChecklistItem, Label, LoginResponse, Note
 
 BASE_URL = "http://127.0.0.1:8000"
 
@@ -106,6 +106,11 @@ async def create_note(
 async def list_notes(token: str) -> list[Note]:
     data = await _get("/api/keep/notes/", token=token)
     return [Note(**item) for item in data]
+
+
+async def list_labels(token: str) -> list[Label]:
+    data = await _get("/api/keep/labels/", token=token)
+    return [Label(**item) for item in data]
 
 
 async def update_note(

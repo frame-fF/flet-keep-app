@@ -1,6 +1,7 @@
 from .client import (
     ApiError,
     create_note,
+    list_labels,
     list_notes,
     login,
     logout,
@@ -13,6 +14,7 @@ from .client import (
 __all__ = [
     "ApiError",
     "create_note",
+    "list_labels",
     "list_notes",
     "login",
     "logout",
