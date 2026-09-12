@@ -777,33 +777,16 @@ def App():
     )
 
 
-TEXT_STYLE_NAMES = [
-    "body_large", "body_medium", "body_small",
-    "display_large", "display_medium", "display_small",
-    "headline_large", "headline_medium", "headline_small",
-    "label_large", "label_medium", "label_small",
-    "title_large", "title_medium", "title_small",
-]
-
-
-def build_text_theme() -> ft.TextTheme:
-    """Poppins first, falling back to Prompt for glyphs it doesn't have (e.g. Thai)."""
-    style = ft.TextStyle(font_family="Poppins", font_family_fallback=["Prompt"])
-    return ft.TextTheme(**{name: style for name in TEXT_STYLE_NAMES})
-
-
 def main(page: ft.Page):
     page.window.width = 440
     page.window.height = 800
 
     page.fonts = {
-        "Poppins": "font/Poppins-Regular.ttf",
         "Prompt": "font/Prompt-Regular.ttf",
     }
 
     page.theme = ft.Theme(
-        font_family="Poppins",
-        text_theme=build_text_theme(),
+        font_family="Prompt",
         page_transitions=ft.PageTransitionsTheme(
             android=ft.PageTransitionTheme.NONE,
             ios=ft.PageTransitionTheme.NONE,
