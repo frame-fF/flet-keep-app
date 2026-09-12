@@ -6,6 +6,7 @@ from flet_color_pickers import BlockPicker
 from api import (
     ApiError,
     create_note as api_create_note,
+    list_labels as api_list_labels,
     list_notes as api_list_notes,
     login as api_login,
     logout as api_logout,
@@ -156,6 +157,7 @@ def page_view(title: str, content: ft.Control, **view_kwargs) -> ft.View:
 @ft.component
 def NoteEditorFab(on_saved=None, open_ref=None):
     """FAB that opens a Keep-style note editor dialog for a new or existing note."""
+    page = ft.context.page
     show, set_show = ft.use_state(False)
     editing_id, set_editing_id = ft.use_state(None)
     title, set_title = ft.use_state("")
@@ -165,6 +167,19 @@ def NoteEditorFab(on_saved=None, open_ref=None):
     saving, set_saving = ft.use_state(False)
     error_text, set_error_text = ft.use_state("")
     picking_color, set_picking_color = ft.use_state(False)
+    labels, set_labels = ft.use_state([])
+    available_labels, set_available_labels = ft.use_state([])
+    picking_labels, set_picking_labels = ft.use_state(False)
+    new_label_text, set_new_label_text = ft.use_state("")
+
+    async def load_labels():
+        try:
+            data = await api_list_labels(get_token())
+            set_available_labels(data)
+        except ApiError:
+            pass
+
+    ft.use_effect(lambda: page.run_task(load_labels), [])
 
     def reset_and_close():
         set_show(False)
@@ -175,6 +190,8 @@ def NoteEditorFab(on_saved=None, open_ref=None):
         set_pinned(False)
         set_error_text("")
         set_saving(False)
+        set_labels([])
+        set_new_label_text("")
 
     def open_for_edit(note: Note):
         set_editing_id(note.id)
@@ -187,11 +204,27 @@ def NoteEditorFab(on_saved=None, open_ref=None):
         )
         set_color(note.color)
         set_pinned(note.is_pinned)
+        set_labels(list(note.labels))
         set_error_text("")
         set_show(True)
 
     if open_ref is not None:
         open_ref.current = open_for_edit
+
+    def toggle_label(name: str):
+        if name in labels:
+            set_labels([n for n in labels if n != name])
+        else:
+            set_labels(labels + [name])
+
+    def remove_label(name: str):
+        set_labels([n for n in labels if n != name])
+
+    def add_new_label(e):
+        name = new_label_text.strip()
+        if name and name not in labels:
+            set_labels(labels + [name])
+        set_new_label_text("")
 
     def add_item(e):
         set_items(items + [{"id": uuid.uuid4().hex, "text": "", "checked": False}])
@@ -242,6 +275,7 @@ def NoteEditorFab(on_saved=None, open_ref=None):
                     content="",
                     color=color,
                     is_pinned=pinned,
+                    labels=labels,
                     checklist_items=checklist_items,
                 )
             else:
@@ -252,6 +286,7 @@ def NoteEditorFab(on_saved=None, open_ref=None):
                     content="",
                     color=color,
                     is_pinned=pinned,
+                    labels=labels,
                     checklist_items=checklist_items,
                 )
             reset_and_close()
@@ -318,6 +353,36 @@ def NoteEditorFab(on_saved=None, open_ref=None):
                 ),
                 checklist_view,
                 ft.TextButton("+  รายการ", on_click=add_item),
+                ft.Row(
+                    [
+                        ft.Container(
+                            content=ft.Row(
+                                [
+                                    ft.Text(name, size=12),
+                                    ft.IconButton(
+                                        icon=ft.Icons.CLOSE,
+                                        icon_size=12,
+                                        on_click=lambda e, n=name: remove_label(n),
+                                    ),
+                                ],
+                                tight=True,
+                                spacing=2,
+                            ),
+                            padding=ft.Padding.symmetric(horizontal=8, vertical=0),
+                            bgcolor=ft.Colors.SURFACE_CONTAINER_HIGHEST,
+                            border_radius=16,
+                        )
+                        for name in labels
+                    ]
+                    + [
+                        ft.IconButton(
+                            icon=ft.Icons.NEW_LABEL,
+                            icon_size=18,
+                            on_click=lambda e: set_picking_labels(True),
+                        )
+                    ],
+                    wrap=True,
+                ),
                 ft.Container(height=20 if error_text else 0, content=ft.Text(error_text, color=ft.Colors.ERROR)),
                 ft.Row(
                     [
@@ -369,6 +434,42 @@ def NoteEditorFab(on_saved=None, open_ref=None):
         else None
     )
 
+    ft.use_dialog(
+        ft.AlertDialog(
+            modal=True,
+            title=ft.Text("เลือก label"),
+            content=ft.Column(
+                [
+                    ft.Checkbox(
+                        label=lbl.name,
+                        value=lbl.name in labels,
+                        on_change=lambda e, n=lbl.name: toggle_label(n),
+                    )
+                    for lbl in available_labels
+                ]
+                + [
+                    ft.Row(
+                        [
+                            ft.TextField(
+                                value=new_label_text,
+                                hint_text="label ใหม่",
+                                expand=True,
+                                on_change=lambda e: set_new_label_text(e.control.value),
+                                on_submit=add_new_label,
+                            ),
+                            ft.IconButton(icon=ft.Icons.ADD, on_click=add_new_label),
+                        ]
+                    ),
+                ],
+                tight=True,
+                width=300,
+            ),
+            actions=[ft.TextButton("ปิด", on_click=lambda e: set_picking_labels(False))],
+        )
+        if picking_labels
+        else None
+    )
+
     def open_for_new(e):
         set_editing_id(None)
         set_title("")
@@ -376,6 +477,8 @@ def NoteEditorFab(on_saved=None, open_ref=None):
         set_color("default")
         set_pinned(False)
         set_error_text("")
+        set_labels([])
+        set_new_label_text("")
         set_show(True)
 
     return ft.FloatingActionButton(icon=ft.Icons.ADD, on_click=open_for_new)
@@ -405,6 +508,22 @@ def note_card(note: Note, on_click=None) -> ft.Control:
                         color=ft.Colors.ON_SURFACE_VARIANT if item.is_checked else None,
                     ),
                 ]
+            )
+        )
+
+    if note.labels:
+        body.append(
+            ft.Row(
+                [
+                    ft.Container(
+                        content=ft.Text(name, size=11),
+                        padding=ft.Padding.symmetric(horizontal=8, vertical=2),
+                        bgcolor=ft.Colors.SURFACE_CONTAINER_HIGHEST,
+                        border_radius=12,
+                    )
+                    for name in note.labels
+                ],
+                wrap=True,
             )
         )
 
